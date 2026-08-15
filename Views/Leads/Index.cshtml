@@ -1,0 +1,92 @@
+@{
+    ViewData["Title"] = "Leads";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Leads</h2>
+    <a class="btn btn-primary" asp-action="Create">+ Add Lead</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-3"><input id="search" class="form-control" placeholder="Search name, company, email, mobile"></div>
+            <div class="col-md-2"><select id="status" class="form-select"><option value="">All Status</option>@foreach(var x in LeadOptions.Statuses){<option>@x</option>}</select></div>
+            <div class="col-md-3"><select id="service" class="form-select"><option value="">All Services</option>@foreach(var x in LeadOptions.Services){<option>@x</option>}</select></div>
+            <div class="col-md-2"><select id="assignedTo" class="form-select"><option value="">All Assignees</option>@foreach(var x in LeadOptions.Assignees){<option>@x</option>}</select></div>
+            <div class="col-md-2"><select id="sort" class="form-select"><option value="date">Newest</option><option value="value">Value</option><option value="name">Name</option></select></div>
+        </div>
+    </div>
+</div>
+
+<div id="message"></div>
+<div class="table-responsive">
+<table class="table table-bordered table-hover align-middle">
+<thead class="table-light">
+<tr><th>Name</th><th>Company</th><th>Service</th><th>Status</th><th>Assigned</th><th>Value</th><th>Actions</th></tr>
+</thead>
+<tbody id="leadRows"></tbody>
+</table>
+</div>
+<div class="d-flex justify-content-between">
+    <button id="prev" class="btn btn-outline-secondary btn-sm">Previous</button>
+    <span id="pageInfo" class="pt-1"></span>
+    <button id="next" class="btn btn-outline-secondary btn-sm">Next</button>
+</div>
+
+@section Scripts {
+<script>
+let page = 1;
+const qs = id => document.getElementById(id);
+async function loadLeads() {
+    const params = new URLSearchParams({
+        search: qs('search').value,
+        status: qs('status').value,
+        service: qs('service').value,
+        assignedTo: qs('assignedTo').value,
+        sortBy: qs('sort').value,
+        desc: 'true',
+        page: page,
+        pageSize: 10
+    });
+    const response = await fetch('/api/leads?' + params);
+            if (!response.ok) {
+            const errorText = await response.text();
+
+            qs('message').innerHTML =
+                `<div class="alert alert-danger">
+                    Unable to load leads. ${escapeHtml(errorText)}
+                </div>`;
+
+            return;
+        }
+    const data = await response.json();
+    qs('leadRows').innerHTML = data.items.map(x => `
+      <tr>
+        <td>${escapeHtml(x.leadName)}</td>
+        <td>${escapeHtml(x.companyName)}</td>
+        <td>${escapeHtml(x.serviceRequired)}</td>
+        <td><span class="badge bg-secondary">${escapeHtml(x.status)}</span></td>
+        <td>${escapeHtml(x.assignedTo)}</td>
+        <td>${x.estimatedValue ?? ''}</td>
+        <td class="text-nowrap">
+          <a class="btn btn-sm btn-info" href="/Leads/Details/${x.id}">View</a>
+          <a class="btn btn-sm btn-warning" href="/Leads/Edit/${x.id}">Edit</a>
+          <button class="btn btn-sm btn-danger" onclick="deleteLead(${x.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+    qs('pageInfo').textContent = `Page ${data.page} of ${Math.max(data.totalPages, 1)} (${data.total} leads)`;
+    qs('prev').disabled = data.page <= 1;
+    qs('next').disabled = data.page >= data.totalPages;
+}
+function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+async function deleteLead(id) {
+    if (!confirm('Delete this lead?')) return;
+    const r = await fetch('/api/leads/' + id, { method: 'DELETE' });
+    if (r.ok) loadLeads(); else alert('Delete failed.');
+}
+['search','status','service','assignedTo','sort'].forEach(id => qs(id).addEventListener('input', () => { page=1; loadLeads(); }));
+qs('prev').onclick = () => { page--; loadLeads(); };
+qs('next').onclick = () => { page++; loadLeads(); };
+loadLeads();
+</script>
+}

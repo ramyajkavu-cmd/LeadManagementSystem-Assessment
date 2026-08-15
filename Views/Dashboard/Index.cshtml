@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    var data = ViewBag.StatusData as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+<h2 class="mb-4">Dashboard</h2>
+<div class="row g-3">
+    <div class="col-md-2"><div class="card stat-card"><div class="card-body"><small>Total Leads</small><h3>@ViewBag.TotalLeads</h3></div></div></div>
+    <div class="col-md-2"><div class="card stat-card"><div class="card-body"><small>New</small><h3>@ViewBag.NewLeads</h3></div></div></div>
+    <div class="col-md-2"><div class="card stat-card"><div class="card-body"><small>Proposal Sent</small><h3>@ViewBag.ProposalSent</h3></div></div></div>
+    <div class="col-md-2"><div class="card stat-card"><div class="card-body"><small>Won</small><h3>@ViewBag.Won</h3></div></div></div>
+    <div class="col-md-2"><div class="card stat-card"><div class="card-body"><small>Lost</small><h3>@ViewBag.Lost</h3></div></div></div>
+    <div class="col-md-2"><div class="card stat-card"><div class="card-body"><small>Potential Value</small><h3>₹@ViewBag.PotentialValue</h3></div></div></div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5>Leads by Status</h5>
+        <canvas id="statusChart" height="100"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    ((IEnumerable<dynamic>)ViewBag.StatusData).Select(x => new { label = x.Status, count = x.Count })));
+new Chart(document.getElementById('statusChart'), {
+    type: 'bar',
+    data: { labels: statusData.map(x => x.label), datasets: [{ label: 'Leads', data: statusData.map(x => x.count) }] },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+});
+</script>
+}

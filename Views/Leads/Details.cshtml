@@ -1,0 +1,75 @@
+@model Lead
+@{
+    ViewData["Title"] = "Lead Details";
+}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Lead Details</h2>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        <a asp-action="Index" class="btn btn-secondary">Back</a>
+    </div>
+</div>
+<div class="card mt-3">
+<div class="card-body">
+<div class="row">
+<div class="col-md-6"><strong>Name:</strong> @Model.LeadName</div>
+<div class="col-md-6"><strong>Company:</strong> @Model.CompanyName</div>
+<div class="col-md-6"><strong>Mobile:</strong> @Model.Mobile</div>
+<div class="col-md-6"><strong>Email:</strong> @Model.Email</div>
+<div class="col-md-6"><strong>Service:</strong> @Model.ServiceRequired</div>
+<div class="col-md-6"><strong>Source:</strong> @Model.LeadSource</div>
+<div class="col-md-6"><strong>Value:</strong> ₹@Model.EstimatedValue</div>
+<div class="col-md-6"><strong>Assigned To:</strong> @Model.AssignedTo</div>
+<div class="col-md-6"><strong>Status:</strong> @Model.Status</div>
+<div class="col-12 mt-2"><strong>Remarks:</strong><br/>@Model.Remarks</div>
+</div>
+</div>
+</div>
+
+<div class="card mt-4">
+<div class="card-body">
+<h4>Follow-up History</h4>
+<form id="followUpForm" class="row g-2 mb-3">
+<div class="col-md-3"><input id="followUpDate" type="date" class="form-control" required /></div>
+<div class="col-md-2"><select id="followUpType" class="form-select"><option>Call</option><option>Email</option><option>Meeting</option><option>WhatsApp</option><option>Demo</option><option>Other</option></select></div>
+<div class="col-md-3"><input id="followUpRemarks" class="form-control" placeholder="Remarks" /></div>
+<div class="col-md-2"><input id="nextDate" type="date" class="form-control" /></div>
+<div class="col-md-2"><button class="btn btn-primary w-100">Add Follow-up</button></div>
+</form>
+<div class="table-responsive">
+<table class="table table-bordered"><thead><tr><th>Date</th><th>Type</th><th>Remarks</th><th>Next Follow-up</th></tr></thead><tbody id="followUps"></tbody></table>
+</div>
+</div>
+</div>
+
+<form asp-action="Delete" method="post" class="mt-3" onsubmit="return confirm('Delete this lead?');">
+@Html.AntiForgeryToken()
+<input type="hidden" name="id" value="@Model.Id" />
+<button class="btn btn-danger">Delete Lead</button>
+</form>
+
+@section Scripts {
+<script>
+const leadId = @Model.Id;
+async function loadFollowUps() {
+ const r = await fetch(`/api/leads/${leadId}/followups`);
+ if (!r.ok) return;
+ const data = await r.json();
+ document.getElementById('followUps').innerHTML = data.map(x =>
+ `<tr><td>${new Date(x.followUpDate).toLocaleDateString()}</td><td>${x.followUpType}</td><td>${x.remarks ?? ''}</td><td>${x.nextFollowUpDate ? new Date(x.nextFollowUpDate).toLocaleDateString() : ''}</td></tr>`).join('');
+}
+document.getElementById('followUpForm').addEventListener('submit', async e => {
+ e.preventDefault();
+ const body = {
+   followUpDate: document.getElementById('followUpDate').value,
+   followUpType: document.getElementById('followUpType').value,
+   remarks: document.getElementById('followUpRemarks').value,
+   nextFollowUpDate: document.getElementById('nextDate').value || null
+ };
+ const r = await fetch(`/api/leads/${leadId}/followups`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+ if (r.ok) { e.target.reset(); loadFollowUps(); } else alert('Could not add follow-up.');
+});
+document.getElementById('followUpDate').value = new Date().toISOString().slice(0,10);
+loadFollowUps();
+</script>
+}
