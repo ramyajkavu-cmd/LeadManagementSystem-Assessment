@@ -88,8 +88,7 @@ public class LeadsApiController : ControllerBase
 
         return Ok(new
         {
-            items,
-            total,
+             total,
             page,
             pageSize,
             totalPages = (int)Math.Ceiling(total / (double)pageSize)
